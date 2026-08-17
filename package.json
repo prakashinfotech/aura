@@ -1,0 +1,27 @@
+{
+  "name": "aura-marketplace",
+  "version": "1.0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:seller": "turbo run dev --filter=seller",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "dependencies": {
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.3.0",
+    "pg": "^8.20.0"
+  }
+}

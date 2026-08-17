@@ -1,0 +1,5 @@
+# Dev artifacts — not needed for remote build
+apps/web/.next
+apps/seller/.next
+**/.turbo
+**/node_modules/.cache

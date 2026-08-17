@@ -1,0 +1,24 @@
+{
+  "name": "@aura/validators",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth.ts",
+    "./address": "./src/address.ts",
+    "./product": "./src/product.ts",
+    "./order": "./src/order.ts",
+    "./coupon": "./src/coupon.ts",
+    "./seller": "./src/seller.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.25.63"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@aura/config": "workspace:*"
+  }
+}

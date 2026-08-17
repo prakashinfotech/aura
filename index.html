@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Saaya — Fashion, finely curated</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* palette — default "Rose & Ivory" */
+    --brand: #B33951;
+    --brand-strong: #962A42;
+    --brand-soft: #F3D5DC;
+    --ink: #1F1B1A;
+    --ink-2: #4A4341;
+    --ink-3: #8A847D;
+    --surface: #FBF6E9;
+    --surface-2: #FFFFFF;
+    --surface-3: #F2ECDB;
+    --border: #E6DCC6;
+    --border-strong: #C9BFAA;
+    --accent: #C99B5E;
+    --success: #3D7B4A;
+    --warn: #C97A2E;
+
+    --shadow-sm: 0 1px 2px rgba(31,27,26,.06), 0 1px 1px rgba(31,27,26,.04);
+    --shadow-md: 0 4px 14px rgba(31,27,26,.10);
+    --shadow-lg: 0 12px 40px rgba(31,27,26,.18);
+
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+    --r-xl: 22px;
+
+    --pad: 16px;
+    --max: 1320px;
+
+    --font-display: "Instrument Serif", "Times New Roman", serif;
+    --font-ui: "Geist", ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-ui);
+    color: var(--ink);
+    background: var(--surface);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  img { display: block; max-width: 100%; }
+  button { font-family: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  input, button, select, textarea { font-family: inherit; }
+
+  /* Tighten serif display caps */
+  .serif { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+  .mono { font-family: var(--font-mono); }
+
+  /* Striped placeholder for product art */
+  .ph {
+    position: relative;
+    width: 100%; height: 100%;
+    background-color: var(--ph-bg, #E3C1B7);
+    background-image:
+      repeating-linear-gradient(
+        135deg,
+        rgba(255,255,255,.18) 0 1px,
+        transparent 1px 14px
+      );
+    overflow: hidden;
+    display: flex; align-items: flex-end; justify-content: flex-start;
+    color: var(--ph-fg, rgba(31,27,26,.55));
+  }
+  .ph::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 80% at 50% 100%, rgba(31,27,26,.22), transparent 60%);
+    pointer-events: none;
+  }
+  .ph .ph-label {
+    position: relative; z-index: 1;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    text-transform: lowercase;
+    padding: 8px 10px;
+    opacity: .8;
+  }
+
+  /* Scrollbars on horizontal rows */
+  .h-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .h-scroll::-webkit-scrollbar { display: none; }
+
+  /* Buttons (base) */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: 1px solid transparent; border-radius: var(--r-md); padding: 12px 18px;
+    font-size: 13.5px; font-weight: 500; letter-spacing: .01em; line-height: 1;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease, color .2s ease;
+    user-select: none; white-space: nowrap;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--brand); color: #fff; }
+  .btn-primary:hover { background: var(--brand-strong); }
+  .btn-ghost { background: transparent; border-color: var(--border-strong); color: var(--ink); }
+  .btn-ghost:hover { background: var(--surface-3); }
+  .btn-ink { background: var(--ink); color: var(--surface); }
+  .btn-ink:hover { background: #000; }
+  .btn-link { background: transparent; padding: 6px 0; color: var(--ink); border-bottom: 1px solid var(--ink); border-radius: 0; }
+
+  /* Pill */
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-size: 11.5px; font-weight: 500; }
+
+  /* Focus */
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 4px; }
+
+  /* App-wide layout helpers */
+  .container { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+  @media (min-width: 768px) { :root { --pad: 24px; } }
+  @media (min-width: 1100px) { :root { --pad: 32px; } }
+
+  /* Hover lift for cards */
+  .lift { transition: transform .25s ease, box-shadow .25s ease; }
+  .lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+
+  /* Toast */
+  @keyframes toast-in { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: var(--surface); padding: 12px 16px; border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg); z-index: 5000; animation: toast-in .25s ease;
+    display: flex; gap: 10px; align-items: center; font-size: 13px; font-weight: 500; }
+
+  /* Heart pop */
+  @keyframes heart-pop {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.45); }
+    100% { transform: scale(1); }
+  }
+  .heart-pop { animation: heart-pop .42s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  /* Slide-in drawer */
+  @keyframes slide-in-r {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  .backdrop { animation: fade-in .25s ease; }
+  .drawer { animation: slide-in-r .35s cubic-bezier(0.4, 0, 0.2, 1); }
+
+  /* Hide scrollbars in mobile nav etc */
+  ::-webkit-scrollbar { height: 8px; width: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* Tweaks-driven knobs */
+  body[data-density="compact"] { --pad: 14px; }
+  body[data-corners="sharp"] { --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-xl: 10px; }
+  body[data-type="sans"] { --font-display: var(--font-ui); }
+
+  /* Disable transitions for tweak swatches initially to avoid flicker */
+  .no-anim, .no-anim * { transition: none !important; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Persisted tweak defaults — edited by host -->
+<script>
+  window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "palette": "rose",
+    "type": "sans",
+    "density": "compact",
+    "corners": "soft"
+  }/*EDITMODE-END*/;
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-client.js"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="screens.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

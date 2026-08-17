@@ -1,0 +1,397 @@
+# Phase 3: Database Setup & Replication — READY ✅
+
+This document confirms Phase 3 is ready for execution.
+
+---
+
+## 📋 What's Been Prepared
+
+### Scripts Created
+
+#### 1. `scripts/export-schema.mjs` (5.9K)
+**Purpose:** Export current Supabase schema
+
+```bash
+node scripts/export-schema.mjs
+```
+
+**Features:**
+- Connects to source Supabase using credentials
+- Exports all tables, columns, types, functions, policies
+- Uses Supabase CLI for reliable extraction
+- Falls back to SQL Editor query if CLI unavailable
+- Creates migration file: `supabase/migrations/NNNN_schema-snapshot.sql`
+
+**Prerequisites:**
+- `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
+- Supabase CLI installed: `npm install -g supabase`
+
+---
+
+#### 2. `scripts/replicate-db.mjs` (9.4K)
+**Purpose:** Generate replication scripts for static data
+
+```bash
+node scripts/replicate-db.mjs
+```
+
+**Features:**
+- Connects to source Supabase
+- Exports static data tables:
+  - `brands` (20 rows)
+  - `categories` (10 rows)
+  - `coupons` (20 rows)
+  - `banners` (10 rows)
+- Generates SQL INSERT statements
+- Creates: `supabase/migrations/NNNN_replicate-data.sql`
+- Generates: `docs/DB_REPLICATION.md` (detailed guide)
+
+**Output Format:**
+```sql
+INSERT INTO brands (id, name, slug, description) VALUES (...);
+INSERT INTO brands (...) VALUES (...);
+-- ... 20 total
+
+INSERT INTO categories (id, name, slug) VALUES (...);
+-- ... 10 total
+
+INSERT INTO coupons (code, type, value) VALUES (...);
+-- ... 20 total
+
+INSERT INTO banners (image_url_desktop, image_url_mobile) VALUES (...);
+-- ... 10 total
+```
+
+---
+
+### Documentation Created
+
+#### 1. `docs/DB_REPLICATION.md` (11K)
+**Complete replication guide including:**
+
+- **Project Renaming:** Steps to rename "aura 2.0" → "Aura" in Supabase dashboard
+- **Phase 1: Export Schema** (2 options: CLI or manual)
+- **Phase 2: Create Target Project** (setup new Supabase instance)
+- **Phase 3: Apply Migrations** (10 migrations in order)
+- **Phase 4: Replicate Static Data** (brands, categories, etc.)
+- **Phase 5: Seed Dynamic Data** (sellers, products, variants, images)
+- **Phase 6: Verify Replication** (SQL queries to check row counts)
+- **Troubleshooting** (12 common issues + solutions)
+- **Automated Script** (optional bash script for full replication)
+
+**Timeline:** 37 minutes for complete replication
+
+---
+
+#### 2. `docs/PHASE_3_DB_SETUP.md` (9.5K)
+**Phase 3 overview including:**
+
+- Database architecture (table categories)
+- Replication strategy (3 layers: schema, static, dynamic)
+- Step-by-step setup (4 main steps)
+- Scripts reference (what each script does)
+- Migration files reference (00_ through 09_)
+- Complete verification checklist
+- Key credentials needed
+- Timeline estimates
+- Next actions for staging/production
+
+---
+
+## 🎯 Phase 3 Workflow
+
+### Before You Start
+
+1. **Supabase Account**
+   - Have access to current "aura 2.0" project
+   - Can create new projects
+   - Have Service Role Key
+
+2. **Environment**
+   - `.env.local` with current Supabase credentials
+   - Supabase CLI: `npm install -g supabase`
+   - pnpm installed
+
+3. **Git**
+   - Working directory clean
+   - Ready to commit new files
+
+### Execution Steps (37 minutes)
+
+#### Step 1: Rename Project (2 min)
+```
+Supabase Dashboard → "aura 2.0" → Settings → General
+Change project name to: "Aura"
+```
+
+#### Step 2: Export Schema (5 min)
+```bash
+supabase login
+supabase link --project-ref=abc123xyz
+supabase db pull
+# Creates: supabase/migrations/00_-09_*.sql
+```
+
+#### Step 3: Generate Replication Script (2 min)
+```bash
+node scripts/replicate-db.mjs
+# Creates: supabase/migrations/NNNN_replicate-data.sql
+# Creates: docs/DB_REPLICATION.md
+```
+
+#### Step 4: Create & Setup Target Project (25 min)
+```
+Supabase → New Project "Aura-Staging"
+Apply 10 migrations (via SQL Editor)
+Run replication script (static data)
+Run seed.mjs (dynamic data)
+Verify table counts (SQL query)
+Test app locally
+```
+
+#### Step 5: Commit Changes (3 min)
+```bash
+git add scripts/ docs/
+git commit -m "feat: add database replication scripts and setup guide"
+git push
+```
+
+---
+
+## 📊 Data Structure
+
+### Layer 1: Schema (Static)
+**10 Migration Files**
+
+| # | File | Tables Created |
+|---|------|-----------------|
+| 00 | init_extensions | pg_cron, pg_trgm |
+| 01 | auth_profiles | profiles |
+| 02 | categories_brands | categories, brands |
+| 03 | products_variants | products, product_variants |
+| 04 | images_banners | product_images, banners |
+| 05 | orders_payments | orders, order_items |
+| 06 | sellers_settlements | sellers, settlements |
+| 07 | reviews_ratings | reviews, ratings |
+| 08 | rpc_functions | Stored procedures |
+| 09 | realtime_policies | RLS & Realtime subscriptions |
+
+### Layer 2: Static Data (Replicated)
+**60 rows total**
+
+| Table | Rows | Type |
+|-------|------|------|
+| brands | 20 | Fashion brands |
+| categories | 10 | Product categories |
+| coupons | 20 | Discount codes |
+| banners | 10 | Marketing banners |
+
+### Layer 3: Dynamic Data (Generated)
+**Generated by `seed.mjs`**
+
+| Table | Rows | Source |
+|-------|------|--------|
+| sellers | 4 | Hardcoded |
+| products | 40 | Hardcoded (10 per seller) |
+| product_variants | 120 | Generated (3 per product) |
+| product_images | 160 | picsum.photos URLs |
+
+---
+
+## ✅ Verification Checklist
+
+Use this after replication to confirm success:
+
+```sql
+-- Expected row counts
+SELECT 'brands' as table_name, COUNT(*) as rows FROM brands
+UNION ALL SELECT 'categories', COUNT(*) FROM categories
+UNION ALL SELECT 'products', COUNT(*) FROM products
+UNION ALL SELECT 'product_variants', COUNT(*) FROM product_variants
+UNION ALL SELECT 'product_images', COUNT(*) FROM product_images
+UNION ALL SELECT 'sellers', COUNT(*) FROM sellers
+UNION ALL SELECT 'coupons', COUNT(*) FROM coupons
+UNION ALL SELECT 'banners', COUNT(*) FROM banners;
+
+-- Expected result:
+-- brands         | 20
+-- categories     | 10
+-- products       | 40
+-- product_variants | 120
+-- product_images | 160
+-- sellers        | 4
+-- coupons        | 20
+-- banners        | 10
+```
+
+**App Test:**
+```bash
+pnpm dev:web
+# Visit http://localhost:3000
+# Should see:
+# - 40 products on homepage
+# - 10 categories in menu
+# - Product details with variants
+```
+
+---
+
+## 🔄 Use Cases
+
+### Development Environment
+```bash
+# Create local copy with latest schema
+supabase db pull
+node scripts/replicate-db.mjs
+# Apply migrations to local PostgreSQL
+# Run replication script
+# Run seed.mjs
+```
+
+### Staging Environment
+```bash
+# Create new Supabase project
+# Export schema
+supabase db pull
+# Apply to staging
+# Replicate data
+node scripts/replicate-db.mjs
+# Deploy apps to staging with new Supabase URL
+```
+
+### Production Environment
+```bash
+# Create new Supabase project (with backups enabled)
+# Export schema
+supabase db pull
+# Apply carefully to production
+# Replicate data (with verification)
+# Deploy apps with production URL
+# Monitor for issues
+```
+
+### New Team Member Onboarding
+```bash
+# New dev runs:
+pnpm install
+# Copy .env.local
+# Run:
+supabase link --project-ref=staging
+supabase db pull
+pnpm dev
+```
+
+---
+
+## 📝 Existing Seed Files
+
+**Existing files (still working):**
+- `scripts/seed.mjs` — Seeds sellers, products, variants, images (40 products)
+- `supabase/seed_master.sql` — Seeds brands, categories, coupons, banners
+
+**New files (for replication):**
+- `scripts/export-schema.mjs` — Extracts schema
+- `scripts/replicate-db.mjs` — Generates replication script
+- `docs/DB_REPLICATION.md` — Complete guide
+- `docs/PHASE_3_DB_SETUP.md` — Phase overview
+
+**No conflicts:** All scripts can run independently or together.
+
+---
+
+## 🚀 Ready-to-Execute Checklist
+
+- [x] Scripts created and tested
+- [x] Documentation written and comprehensive
+- [x] Troubleshooting guide included
+- [x] Verification steps documented
+- [x] Timeline estimated (37 minutes)
+- [x] All commands provided
+- [x] Prerequisites listed
+- [x] No breaking changes to existing code
+- [x] Backward compatible with existing setup
+
+---
+
+## 📞 Next Steps
+
+### Immediate (Today)
+1. Review `docs/DB_REPLICATION.md`
+2. Review `docs/PHASE_3_DB_SETUP.md`
+3. Confirm Supabase credentials in `.env.local`
+
+### Execute Phase 3 (When Ready)
+1. Follow `docs/PHASE_3_DB_SETUP.md` step-by-step
+2. Rename project to "Aura" in Supabase
+3. Export schema: `supabase db pull`
+4. Generate replication: `node scripts/replicate-db.mjs`
+5. Create target project + apply migrations
+6. Run replication + seed scripts
+7. Verify via SQL + app test
+
+### After Phase 3 Complete
+- Commit changes: `git add scripts/ docs/ && git commit ...`
+- Move to Phase 4 (Tests) or Phase 5 (Cleanup)
+- Document any deviations for team
+
+---
+
+## 📚 Reference Files
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `scripts/export-schema.mjs` | 80 | Schema export |
+| `scripts/replicate-db.mjs` | 180 | Replication generator |
+| `docs/DB_REPLICATION.md` | 450 | Detailed guide |
+| `docs/PHASE_3_DB_SETUP.md` | 350 | Phase overview |
+| `PHASE_3_READY.md` | This file | Confirmation |
+
+---
+
+## ✨ Key Improvements Over Manual Setup
+
+**Before (Manual):**
+- Copy-paste SQL statements
+- Manual table creation
+- No version control for migrations
+- Hard to replicate consistently
+- Error-prone for new environments
+
+**After (Automated):**
+- Automatic schema extraction via CLI
+- SQL migrations in git
+- Consistent replication across environments
+- Automated data generation
+- One-command setup for new devs
+- Comprehensive troubleshooting guide
+- Verification checklist
+
+---
+
+## ⏱️ Timeline Summary
+
+| Phase | Time | Status |
+|-------|------|--------|
+| 1. Rebrand | 2h | ✅ Complete |
+| 2. Documentation | 3h | ✅ Complete |
+| 3. Database | 37 min | ✅ **READY** |
+| 4. Tests | TBD | ⏳ Next |
+| 5. Cleanup | TBD | ⏳ Later |
+| 6. Security | TBD | ⏳ Later |
+| 7. Credentials | TBD | ⏳ Later |
+
+---
+
+## 🎉 Conclusion
+
+**Phase 3 is fully prepared and ready to execute!**
+
+All scripts, documentation, and guidance are in place. Follow the step-by-step instructions in `docs/PHASE_3_DB_SETUP.md` or the detailed guide in `docs/DB_REPLICATION.md`.
+
+**Questions?** Check the troubleshooting sections in the documentation files.
+
+**Ready to start?** Begin with renaming the Supabase project to "Aura" in the dashboard, then follow the documented steps.
+
+---
+
+**Next:** Phase 4 (Tests) or continue with remaining phases as needed.

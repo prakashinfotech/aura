@@ -1,0 +1,30 @@
+{
+  "name": "@aura/db",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./server": "./src/server.ts",
+    "./types": "./src/types.ts",
+    "./queries": "./src/queries.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "@supabase/ssr": "^0.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@aura/config": "workspace:*",
+    "@types/node": "^20"
+  },
+  "peerDependencies": {
+    "next": ">=15"
+  },
+  "peerDependenciesMeta": {
+    "next": { "optional": true }
+  }
+}

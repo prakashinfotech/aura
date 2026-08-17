@@ -1,0 +1,44 @@
+{
+  "name": "seller",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack --port 3001",
+    "build": "next build",
+    "start": "next start --port 3001",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@aura/db": "workspace:*",
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.8",
+    "@aura/ui": "workspace:*",
+    "@aura/validators": "workspace:*",
+    "@tanstack/react-query": "^5.100.10",
+    "@tanstack/react-table": "^8.21.3",
+    "lucide-react": "^0.511.0",
+    "next": "^15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-dropzone": "^14.3.8",
+    "react-hook-form": "^7.75.0",
+    "recharts": "^2.15.3",
+    "sonner": "^2.0.5",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.63",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@aura/config": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.3.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

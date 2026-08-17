@@ -1,0 +1,7 @@
+{
+  "extends": "@aura/config/typescript",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "include": ["src/**/*"]
+}

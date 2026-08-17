@@ -1,0 +1,65 @@
+/* Aura Marketplace — Design Tokens
+   Import this in apps/web/app/globals.css and apps/seller/app/globals.css */
+
+@layer base {
+  :root {
+    /* ── Brand (Indigo) ────────────────────────── */
+    --brand: #6366f1;
+    --brand-hover: #4f46e5;
+    --brand-soft: #f0f4ff;
+    --brand-foreground: #ffffff;
+
+    /* ── Secondary (header, text, footer) ────── */
+    --secondary: #1f2937;
+    --secondary-hover: #111827;
+
+    /* ── Highlight (deals, hot badges) ────── */
+    --highlight: #f59e0b;
+    --highlight-soft: #fef3c7;
+
+    /* ── Neutral surface ──────────────────────── */
+    --background: #f5f5f6;
+    --surface: #ffffff;
+    --surface-raised: #f8f8f9;
+
+    /* ── Text ─────────────────────────────────── */
+    --foreground: #282c3f;
+    --foreground-muted: #696b79;
+    --foreground-subtle: #94969f;
+
+    /* ── Border ───────────────────────────────── */
+    --border: #e9e9eb;
+    --border-strong: #c8c9cf;
+
+    /* ── Feedback ─────────────────────────────── */
+    --success: #03a685;
+    --success-soft: #e6f8f5;
+    --warning: #ff9800;
+    --warning-soft: #fff8e1;
+    --error: #f32f2f;
+    --error-soft: #fff0f0;
+    --info: #2874f0;
+    --info-soft: #e8f0fd;
+
+    /* ── Skeleton ─────────────────────────────── */
+    --skeleton-base: #e9e9eb;
+    --skeleton-shimmer: #f5f5f6;
+
+    /* ── Radius ───────────────────────────────── */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    /* ── Shadow ───────────────────────────────── */
+    --shadow-sm: 0 1px 2px rgba(40, 44, 63, 0.06);
+    --shadow-md: 0 4px 12px rgba(40, 44, 63, 0.1);
+    --shadow-lg: 0 8px 32px rgba(40, 44, 63, 0.16);
+
+    /* ── Layout ───────────────────────────────── */
+    --max-width: 1280px;
+    --header-height: 68px;
+    --bottom-nav-height: 60px;
+  }
+}
