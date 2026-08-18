@@ -1,84 +1,266 @@
-# Aura Marketplace
+# 🏗️ Aura Marketplace
 
-A full-stack fashion e-commerce platform built with modern web technologies. Features include a buyer-facing storefront, seller portal, product catalog management, shopping cart, checkout with Razorpay payments, and order fulfillment.
+A full-stack fashion e-commerce platform built with modern web technologies. Features include a buyer-facing storefront, seller portal, product catalog management, shopping cart, checkout with Razorpay payments, and real-time order fulfillment.
 
-**Status**: Production-ready monorepo with TypeScript strict mode, Tailwind CSS 4, and Supabase backend.
+**Status**: Production-ready monorepo with TypeScript strict mode, Tailwind CSS 4, Supabase backend, and Razorpay integration.
 
 ---
 
-## 🏗️ Architecture Overview
+## 📊 System Architecture & Workflow
+
+### Complete Architecture Diagram
+
+```mermaid
+graph TB
+    subgraph Users["👥 Users & Roles"]
+        Buyer["🛒 Buyer<br/>Browse & Purchase"]
+        Seller["🏪 Seller<br/>Manage Store"]
+        Admin["👨‍💼 Admin<br/>Platform Control"]
+    end
+
+    subgraph Frontend["🎨 Frontend Layer - Next.js 15"]
+        WebApp["Web App<br/>Port 3000<br/>SSR/ISR<br/>Buyer Experience"]
+        SellerApp["Seller Portal<br/>Port 3001<br/>CSR<br/>Store Management"]
+        SharedUI["@aura/ui<br/>shadcn/ui<br/>Shared Components"]
+    end
+
+    subgraph SharedPkgs["📦 Shared Packages"]
+        DB["@aura/db<br/>Supabase Clients<br/>Browser & Server"]
+        Validators["@aura/validators<br/>Zod Schemas<br/>Form Validation"]
+        Config["@aura/config<br/>TS Config<br/>ESLint Rules"]
+    end
+
+    subgraph State["🔄 State Management"]
+        Query["TanStack Query v5<br/>Server State<br/>Product Data"]
+        Zustand["Zustand<br/>Client State<br/>Cart & Auth"]
+    end
+
+    subgraph Backend["🔐 Backend - Supabase"]
+        AuthDB["Authentication<br/>JWT • OTP • OAuth"]
+        DataDB["PostgreSQL 15<br/>Products • Orders<br/>Users • Reviews"]
+        Storage["File Storage<br/>Product Images<br/>User Avatars"]
+        Realtime["Realtime<br/>Order Updates<br/>Notifications"]
+    end
+
+    subgraph External["🌐 External Services"]
+        Razorpay["💳 Razorpay<br/>Payments<br/>Webhooks"]
+        Resend["📧 Resend<br/>Transactional<br/>Emails"]
+        MSG91["📱 MSG91<br/>SMS & OTP"]
+    end
+
+    Buyer -->|Browse & Pay| WebApp
+    Seller -->|Manage| SellerApp
+    Admin -->|Oversee| SellerApp
+
+    WebApp -->|Components| SharedUI
+    SellerApp -->|Components| SharedUI
+
+    WebApp -->|Fetch Data| Query
+    SellerApp -->|Fetch Data| Query
+    WebApp -->|Local State| Zustand
+
+    Query -->|Read/Write| DB
+    DB -->|Connect| DataDB
+    DB -->|Upload| Storage
+
+    WebApp -->|Process Payment| Razorpay
+    Razorpay -->|Webhook| WebApp
+    WebApp -->|Send Email| Resend
+    WebApp -->|OTP| MSG91
+
+    DataDB -->|Broadcast| Realtime
+    Realtime -->|Updates| WebApp
+    Realtime -->|Updates| SellerApp
+
+    style Users fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e293b
+    style Frontend fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style SharedPkgs fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1e293b
+    style State fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1e293b
+    style Backend fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+    style External fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1e293b
+```
+
+### Buyer Journey - Order Flow
+
+```mermaid
+sequenceDiagram
+    participant Buyer as 🛒 Buyer
+    participant Web as Web App<br/>Port 3000
+    participant Store as Zustand Store<br/>Cart State
+    participant Query as TanStack Query
+    participant API as API Routes
+    participant Razorpay as 💳 Razorpay
+    participant Supabase as 🗄️ Supabase<br/>Database
+    participant Realtime as 📡 Realtime
+    participant Seller as 🏪 Seller Portal<br/>Port 3001
+    participant Email as 📧 Resend
+
+    Buyer->>Web: Browse Products
+    Buyer->>Web: Add to Cart
+    Web->>Store: Update Cart (localStorage)
+    Store-->>Web: Cart Updated
+    
+    Buyer->>Web: Proceed to Checkout
+    Web->>Query: Fetch Product Details
+    Query->>Supabase: SELECT products
+    Supabase-->>Query: Product Data
+    Query-->>Web: Display Cart
+    
+    Buyer->>Web: Submit Order
+    Web->>API: Create Order Session
+    API->>Razorpay: Initialize Payment
+    Razorpay-->>Web: Payment Link
+    
+    Buyer->>Razorpay: Pay ₹
+    Razorpay->>API: Webhook (Verify)
+    API->>Supabase: INSERT order + items
+    Supabase-->>API: Order Created
+    
+    API->>Realtime: Broadcast Order
+    Realtime->>Seller: New Order Notification
+    Realtime->>Web: Show Confirmation
+    
+    API->>Email: Send Confirmation
+    Email-->>Buyer: Order Email
+```
+
+### Project Structure
 
 ```
-Aura Marketplace (pnpm + Turborepo)
+aura-marketplace (pnpm + Turborepo)
 ├── apps/
-│   ├── web/                    # Buyer-facing app (Next.js 15, SSR/ISR)
-│   │   ├── app/                # App Router pages & API routes
-│   │   ├── components/         # Page-specific components
-│   │   ├── lib/                # Utilities, hooks, queries
-│   │   ├── stores/             # Zustand stores (cart, wishlist, auth)
-│   │   └── hooks/              # Custom hooks (useAuth, etc.)
+│   ├── web/                    # Buyer-facing (Next.js 15, SSR/ISR, port 3000)
+│   │   ├── app/                # Routes & API handlers
+│   │   ├── components/         # UI components (auth, product, layout)
+│   │   ├── lib/                # Hooks, queries, utilities
+│   │   ├── stores/             # Zustand (cart, wishlist, auth)
+│   │   └── middleware.ts       # Route protection
 │   │
-│   └── seller/                 # Seller portal (Next.js 15, CSR)
-│       ├── app/                # Dashboard pages
-│       ├── components/         # Portal components
+│   └── seller/                 # Seller portal (Next.js 15, CSR, port 3001)
+│       ├── app/                # Dashboard, products, orders
+│       ├── components/         # Forms, tables, charts
 │       ├── lib/                # Seller utilities
-│       └── api/                # Settlement, dispatch, product APIs
+│       └── api/                # Dispatch, settlement APIs
 │
 ├── packages/
-│   ├── ui/                     # Shared component library
-│   │   ├── src/components/     # shadcn/ui + custom components
-│   │   └── src/tokens.css      # Design tokens (colors, radius, shadows)
+│   ├── ui/                     # @aura/ui - Component Library
+│   │   ├── components/         # Button, Input, Dialog, ProductCard, etc.
+│   │   └── src/tokens.css      # Design tokens & CSS variables
 │   │
-│   ├── db/                     # Database client & types
-│   │   ├── src/client.ts       # Browser Supabase client
-│   │   ├── src/server.ts       # Server Supabase client
-│   │   └── src/types.ts        # Generated PostgreSQL types
+│   ├── db/                     # @aura/db - Database Client
+│   │   ├── client.ts           # Browser Supabase instance
+│   │   ├── server.ts           # Server Supabase instance
+│   │   └── types.ts            # Generated PostgreSQL types
 │   │
-│   ├── validators/             # Zod schemas
-│   │   └── src/                # Auth, address, product, order validators
+│   ├── validators/             # @aura/validators - Zod Schemas
+│   │   └── auth.ts, product.ts, order.ts, address.ts
 │   │
-│   └── config/                 # Shared configs
-│       ├── tsconfig.base.json  # TypeScript base config
-│       └── eslint.base.mjs     # ESLint rules
+│   └── config/                 # @aura/config - Shared Configs
+│       ├── tsconfig.json       # TypeScript config
+│       └── eslint.config.mjs   # ESLint rules
 │
 ├── supabase/
 │   ├── migrations/             # Versioned SQL migrations
-│   └── seed_master.sql         # Master seed (brands, categories, coupons)
+│   │   ├── 001_extensions.sql
+│   │   ├── 002_auth.sql
+│   │   ├── 003_catalog.sql
+│   │   ├── 004_commerce.sql
+│   │   └── 005_rpcs.sql
+│   └── seed_master.sql         # Static data (brands, categories)
 │
 ├── scripts/
-│   └── seed.mjs                # Seed sellers, products, variants, images
+│   └── seed.mjs                # Populate sellers, products, variants
 │
-├── docs/
-│   ├── aura-marketplace-requirements.md  # Full requirements
-│   └── CLAUDE_CODE_PROMPT.md          # Build guide
-│
-└── pnpm-workspace.yaml         # Workspace configuration
+└── pnpm-workspace.yaml         # Workspace config
 ```
 
 ---
 
+### Data Flow: Complete Payment Cycle
+
+```mermaid
+graph LR
+    A["Cart Added<br/>Zustand Store"] -->|persist| B["localStorage"]
+    B -->|user checkout| C["Checkout Page"]
+    C -->|TanStack Query| D["Fetch Latest Prices<br/>Supabase"]
+    D -->|product data| E["Display Cart Summary"]
+    E -->|submit order| F["POST /api/orders/create"]
+    F -->|session token| G["Razorpay SDK"]
+    G -->|user pays| H["Payment Gateway"]
+    H -->|success/fail| I["Webhook<br/>/api/webhooks/razorpay"]
+    I -->|verify signature| J["Insert Order<br/>Supabase"]
+    J -->|success| K["Broadcast via<br/>Supabase Realtime"]
+    K -->|new order| L["Seller App<br/>Real-time Notification"]
+    K -->|confirmation| M["Buyer App<br/>Order Status"]
+    J -->|trigger| N["Send Email<br/>Resend API"]
+    N -->|confirmation| O["Buyer Email"]
+
+    style A fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e293b
+    style F fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style I fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1e293b
+    style J fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+    style K fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1e293b
+```
+
+### State Management Architecture
+
+```mermaid
+graph TB
+    subgraph ClientState["🔵 Client State - Zustand"]
+        Auth["Auth Store<br/>- user<br/>- isLoggedIn<br/>- token"]
+        Cart["Cart Store<br/>- items<br/>- total<br/>- itemCount"]
+        Wishlist["Wishlist Store<br/>- savedItems<br/>- count"]
+    end
+
+    subgraph ServerState["🟢 Server State - TanStack Query"]
+        Products["Products Query<br/>- list<br/>- detail<br/>- search"]
+        Orders["Orders Query<br/>- user orders<br/>- tracking"]
+        Reviews["Reviews Query<br/>- product reviews<br/>- ratings"]
+    end
+
+    subgraph LocalPersist["💾 localStorage"]
+        CartPersist["cart-state"]
+        WishlistPersist["wishlist-state"]
+    end
+
+    Auth -->|persist| LocalPersist
+    Cart -->|persist| CartPersist
+    Wishlist -->|persist| WishlistPersist
+
+    Products -->|cached| QueryCache["TanStack Cache<br/>Invalidation Rules"]
+    Orders -->|cached| QueryCache
+    Reviews -->|cached| QueryCache
+
+    Cart -->|checkout| QueryCache
+    QueryCache -->|fetch| Supabase["Supabase"]
+
+    style ClientState fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style ServerState fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+    style LocalPersist fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1e293b
+```
+
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Frontend** | React | 19 (with React Compiler) |
-| **Meta-Framework** | Next.js | 15 (App Router, RSC, SSR/ISR) |
-| **Language** | TypeScript | 5.x (strict mode) |
-| **Styling** | Tailwind CSS | 4.x |
-| **Components** | shadcn/ui | Radix UI primitives |
-| **State Management** | Zustand | Client-side global state |
-| **Server State** | TanStack Query | v5 (React Query) |
-| **Forms** | React Hook Form + Zod | Schema validation |
-| **Database** | Supabase (PostgreSQL 15) | Cloud-hosted |
-| **Authentication** | Supabase Auth | JWT, OAuth, OTP |
-| **File Storage** | Supabase Storage | S3-compatible |
-| **Real-time** | Supabase Realtime | WebSocket subscriptions |
-| **Payments** | Razorpay | Orders, Payouts, Webhooks |
-| **Email** | Resend | Transactional emails |
-| **SMS** | MSG91 | OTP delivery |
-| **Build System** | Turborepo | Monorepo orchestration |
-| **Package Manager** | pnpm | 9.x |
-| **Deployment** | Vercel | Pro plan (Edge, Serverless) |
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| **Frontend** | React + React Compiler | 19.0.0 | UI rendering & optimization |
+| **Meta-Framework** | Next.js (App Router) | 15.3.2 | SSR/ISR, API routes, routing |
+| **Language** | TypeScript | 5.x | Type-safe development |
+| **Styling** | Tailwind CSS 4 | 4.3.0 | Utility-first CSS |
+| **Components** | shadcn/ui + Radix | Latest | Accessible UI primitives |
+| **Client State** | Zustand | 5.0.13 | Cart, wishlist, auth (persisted) |
+| **Server State** | TanStack Query v5 | 5.100.10 | Data fetching & caching |
+| **Forms** | React Hook Form + Zod | 7.75.0 + 3.25.63 | Form validation |
+| **Database** | Supabase PostgreSQL | 15 | Cloud-hosted relational DB |
+| **Authentication** | Supabase Auth | Latest | JWT, OAuth, OTP, Magic Link |
+| **File Storage** | Supabase Storage | Latest | S3-compatible (images, avatars) |
+| **Real-time** | Supabase Realtime | Latest | WebSocket subscriptions |
+| **Payments** | Razorpay | 2.9.6 | Orders, payouts, webhooks |
+| **Email** | Resend | 6.12.3 | Transactional emails |
+| **SMS/OTP** | MSG91 | Latest | OTP delivery |
+| **Build System** | Turborepo | 2.9.12 | Monorepo orchestration |
+| **Package Manager** | pnpm | 9.15.9 | Fast dependency management |
+| **Deployment** | Vercel | Pro | Serverless hosting |
 
 ---
 
@@ -312,33 +494,214 @@ import { orderSchema } from '@aura/validators/order'
 
 ## 📊 Database Schema (PostgreSQL 15)
 
+### Database Structure
+
+```mermaid
+erDiagram
+    PROFILES ||--o{ ADDRESSES : saves
+    PROFILES ||--o{ ORDERS : places
+    PROFILES ||--o{ REVIEWS : writes
+    PROFILES ||--o{ WISHLIST : saves
+    PROFILES ||--o{ SELLERS : manages
+
+    CATEGORIES ||--o{ PRODUCTS : contains
+    BRANDS ||--o{ PRODUCTS : manufactures
+    PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCTS ||--o{ PRODUCT_IMAGES : has
+    PRODUCTS ||--o{ REVIEWS : receives
+
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    ORDER_ITEMS ||--o{ PRODUCT_VARIANTS : orders
+    PRODUCT_VARIANTS ||--o{ INVENTORY : tracks
+
+    SELLERS ||--o{ SELLER_BRANDS : manages
+    SELLERS ||--o{ SETTLEMENTS : receives
+
+    COUPONS ||--o{ ORDERS : applied_to
+
+    PROFILES {
+        uuid id PK
+        string email UK
+        string name
+        string phone
+        string avatar_url
+        timestamp created_at
+    }
+
+    PRODUCTS {
+        uuid id PK
+        uuid category_id FK
+        uuid brand_id FK
+        string name
+        text description
+        decimal rating
+        int review_count
+        boolean is_active
+    }
+
+    ORDERS {
+        uuid id PK
+        uuid profile_id FK
+        decimal total_amount
+        string status
+        timestamp created_at
+    }
+
+    SELLERS {
+        uuid id PK
+        uuid profile_id FK
+        string store_name
+        string logo_url
+        decimal rating
+    }
+```
+
 **Core Tables:**
-- `categories` — Product categories (men, women, kids, etc.)
+- `profiles` — User profiles (extends auth.users)
+- `categories` — Product categories (men, women, kids, accessories)
 - `brands` — Brand information
 - `products` — Product master data
-- `product_variants` — Size, color, SKU, pricing, stock
-- `product_images` — Product photos
-- `profiles` — User profiles (extended from auth.users)
+- `product_variants` — Size, color, SKU, pricing, inventory
+- `product_images` — Product photos (Supabase Storage)
 - `addresses` — Saved delivery addresses
-- `coupons` — Discount codes
-- `orders` — Customer orders
-- `order_items` — Line items per order
+- `orders` — Customer orders with total & status
+- `order_items` — Line items with product variant reference
 - `reviews` — Product reviews & ratings
+- `wishlist` — Saved items
 - `sellers` — Seller store information
+- `seller_brands` — Seller-specific brand management
+- `settlements` — Payout records
+- `coupons` — Discount codes & offers
 - `banners` — Hero & category banners
 
 **Key Relationships:**
-- products → categories (many-to-one)
-- products → brands (many-to-one)
-- product_variants → products (one-to-many)
-- product_images → products (one-to-many)
-- orders → profiles (many-to-one)
-- order_items → orders (one-to-many)
-- reviews → products (many-to-one)
+- `profiles` → `addresses, orders, reviews, sellers, wishlist` (1:N)
+- `categories` → `products` (1:N)
+- `brands` → `products` (1:N)
+- `products` → `product_variants, product_images, reviews` (1:N)
+- `orders` → `order_items` (1:N)
+- `order_items` → `product_variants` (N:1)
 
-Run `supabase gen types typescript --local > packages/db/src/types.ts` after migrations to regenerate types.
+**RLS Policies:**
+- Users can only view/edit their own addresses, orders, reviews
+- Sellers can only manage their own products, orders, settlements
+- Public can view published products, brands, categories
+
+**Generate TypeScript Types:**
+```bash
+supabase gen types typescript --local > packages/db/src/types.ts
+```
 
 ---
+
+## 🔌 API Routes & Endpoints
+
+### Buyer App (web) - API Routes
+
+```mermaid
+graph TB
+    subgraph Auth["Authentication"]
+        Login["POST /auth/callback<br/>OAuth callback"]
+    end
+
+    subgraph Orders["Orders & Payments"]
+        CreateOrder["POST /api/orders/create<br/>Initialize Razorpay session"]
+        VerifyOrder["POST /api/orders/verify<br/>Verify payment webhook"]
+        WebhookRazor["POST /api/webhooks/razorpay<br/>Payment confirmation"]
+    end
+
+    subgraph Upload["File Operations"]
+        UploadAvatar["POST /api/upload/avatar<br/>Upload user avatar to Supabase"]
+    end
+
+    Login -->|Supabase Callback| AuthSuccess["User Authenticated<br/>JWT Token Set"]
+    CreateOrder -->|Razorpay| Payment["Payment Gateway"]
+    Payment -->|Webhook| WebhookRazor
+    WebhookRazor -->|Verify| VerifyOrder
+    VerifyOrder -->|Insert| Database["Supabase<br/>Orders Table"]
+    UploadAvatar -->|File Upload| Storage["Supabase Storage"]
+
+    style Auth fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style Orders fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+    style Upload fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1e293b
+```
+
+### Seller App - API Routes
+
+```mermaid
+graph TB
+    subgraph Dispatch["Order Management"]
+        DispatchOrder["POST /api/dispatch<br/>Mark order as dispatched"]
+    end
+
+    subgraph Settlement["Payment"]
+        RequestSettle["POST /api/settlements/request<br/>Request payout"]
+    end
+
+    DispatchOrder -->|Update Status| Database["Supabase<br/>Orders Table"]
+    Database -->|Broadcast| Realtime["Realtime Event<br/>Buyer sees update"]
+    RequestSettle -->|Calculate Amount| Razorpay["Razorpay<br/>Payout API"]
+
+    style Dispatch fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+    style Settlement fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1e293b
+```
+
+## 🌊 Complete User Workflows
+
+### 👤 Buyer Workflow
+
+```mermaid
+graph TD
+    A["🏠 Visit Homepage"] --> B["🔍 Search/Browse Products"]
+    B --> C["📄 View Product Details"]
+    C --> D{"❓ Want to Buy?"}
+    D -->|No| B
+    D -->|Yes| E["🔐 Login/Signup"]
+    E --> F["🛒 Add to Cart<br/>Zustand Store"]
+    F --> G{"🔄 Continue Shopping?"}
+    G -->|Yes| B
+    G -->|No| H["🛍️ Go to Checkout"]
+    H --> I["📍 Enter/Select Address"]
+    I --> J["🎟️ Apply Coupon"]
+    J --> K["💳 Review Order"]
+    K --> L["💰 Pay via Razorpay"]
+    L --> M{"✅ Payment Success?"}
+    M -->|No| L
+    M -->|Yes| N["📧 Email Confirmation"]
+    N --> O["👁️ View Order Status"]
+    O --> P["⭐ Leave Review"]
+
+    style A fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e293b
+    style E fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style F fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1e293b
+    style L fill:#fee2e2,stroke:#ef4444,stroke-width:2px,color:#1e293b
+    style N fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+```
+
+### 🏪 Seller Workflow
+
+```mermaid
+graph TD
+    A["📝 Register Store"] --> B["✅ Admin Verification"]
+    B --> C["🏪 Access Dashboard"]
+    C --> D["📦 Create Product"]
+    D --> E["🖼️ Upload Images"]
+    E --> F["📊 Create Variants<br/>Size, Color, SKU"]
+    F --> G["🎯 Set Pricing & Stock"]
+    G --> H["👁️ Publish Product"]
+    H --> I["📬 Wait for Orders<br/>Real-time Notifications"]
+    I --> J["📦 Prepare Order"]
+    J --> K["🚚 Mark as Dispatched"]
+    K --> L["📡 Buyer Gets Update<br/>Realtime"]
+    L --> M["💰 Request Settlement"]
+    M --> N["💳 Receive Payout<br/>Razorpay"]
+
+    style A fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#1e293b
+    style D fill:#dbeafe,stroke:#2874f0,stroke-width:2px,color:#1e293b
+    style H fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#1e293b
+    style I fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#1e293b
+    style N fill:#d1fae5,stroke:#10b981,stroke-width:2px,color:#1e293b
+```
 
 ## 🧪 Testing
 
@@ -470,6 +833,28 @@ docker run -p 3000:3000 -p 3001:3001 aura-marketplace
 ## 📄 License
 
 Proprietary. All rights reserved.
+
+---
+
+---
+
+## 📖 Documentation
+
+This README includes:
+- ✅ Complete architecture diagrams (Mermaid)
+- ✅ System workflow visualization
+- ✅ Buyer & seller user journeys
+- ✅ Data flow diagrams (checkout cycle)
+- ✅ State management architecture
+- ✅ Database schema (ER diagram)
+- ✅ API routes mapping
+- ✅ Technology stack breakdown
+- ✅ Setup & deployment guides
+
+For more details, see:
+- `CLAUDE.md` — Development guidance
+- `docs/aura-marketplace-requirements.md` — Full requirements
+- `docs/CLAUDE_CODE_PROMPT.md` — Build task ordering
 
 ---
 
