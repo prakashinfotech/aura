@@ -34,7 +34,12 @@ export async function POST(request: NextRequest) {
     // ✅ SECURITY: Rate limit payment verification (100 per user per hour)
     const authHeader = request.headers.get("Authorization") || "";
     const userIdMatch = authHeader.match(/Bearer ([^.]+)/);
-    const userId = userIdMatch ? userIdMatch[1] : request.ip || "anonymous";
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
+
+    const userId = userIdMatch ? userIdMatch[1] : clientIp;
 
     const { success: rateLimitSuccess, resetTime } = rateLimit(
       `order_verify:${userId}`,
@@ -84,7 +89,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const adminSupabase = createAdminClient();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await (supabase as any).auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
     const productIds = [...new Set(items.map((i) => i.productId))];
     const sellerMap = new Map<string, string>();
     if (productIds.length > 0) {
-      const { data: products } = await adminSupabase
+      const { data: products } = await (adminSupabase as any)
         .from("products")
         .select("id, seller_id")
         .in("id", productIds);
@@ -104,7 +109,7 @@ export async function POST(request: NextRequest) {
       // ✅ SECURITY: Verify all sellers exist before creating order_items
       const sellerIds = Array.from(new Set(products?.map(p => p.seller_id).filter(Boolean) ?? []));
       if (sellerIds.length > 0) {
-        const { data: sellers, error: sellersError } = await adminSupabase
+        const { data: sellers, error: sellersError } = await (adminSupabase as any)
           .from("sellers")
           .select("id")
           .in("id", sellerIds);
@@ -123,7 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create order record (buyer session — RLS "Orders insert own" policy allows this)
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await (supabase as any)
       .from("orders")
       .insert({
         user_id: user.id,
@@ -162,7 +167,7 @@ export async function POST(request: NextRequest) {
         }));
 
       if (orderItems.length > 0) {
-        const { error: itemsError } = await adminSupabase
+        const { error: itemsError } = await (adminSupabase as any)
           .from("order_items")
           .insert(orderItems);
         if (itemsError) {

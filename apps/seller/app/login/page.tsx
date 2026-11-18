@@ -12,7 +12,7 @@ const PERKS = [
   { icon: Package,     text: "Zero listing fees" },
 ];
 
-export default function SellerLoginPage() {
+function SellerLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail]       = React.useState("");
@@ -154,5 +154,14 @@ export default function SellerLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SellerLoginPage() {
+  return (
+    <React.Suspense fallback={<div className="flex min-h-screen bg-[#F5F5F6]"   
+  />}>
+      <SellerLoginForm />
+    </React.Suspense>
   );
 }

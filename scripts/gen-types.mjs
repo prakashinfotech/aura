@@ -12,7 +12,7 @@ const require = createRequire(import.meta.url);
 const { Client } = require("pg");
 const __dir = dirname(fileURLToPath(import.meta.url));
 
-const DATABASE_URL = "";
+const DATABASE_URL = process.env.DATABASE_URL;
 
 const PG_TO_TS = {
   uuid: "string",
