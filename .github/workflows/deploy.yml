@@ -1,0 +1,276 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # The production server's major version (Node 24, npm 11).
+  NODE_VERSION: "24"
+  DEPLOY_DIR: ${{ vars.DEPLOY_DIR || '/var/www/aura' }}
+  PM2_APPS: ${{ vars.PM2_APPS || 'aura-web aura-seller' }}
+
+jobs:
+
+  # ==========================================
+  # CI: build every part
+  # Runs on GitHub-hosted runners
+  # ==========================================
+
+  build:
+    name: Build ${{ matrix.part }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - part: apps
+            dir: "."
+            install: "pnpm install --frozen-lockfile"
+            check: "pnpm run type-check"
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # pnpm, at the version in package.json "packageManager".
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: ${{ matrix.install }}
+
+      - name: Check
+        run: ${{ matrix.check }}
+
+
+  # ==========================================
+  # DEPLOY: Production server
+  # Runs on the self-hosted runner on the production server
+  # ==========================================
+
+  deploy:
+    name: Deploy to production
+
+    needs:
+      - build
+
+    # Never deploy PR validation runs.
+    # Deploy only master branch pushes or manual runs
+    # started against master.
+
+    if: >
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/master'
+
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - brd
+      - local-server
+
+    environment: production
+
+    concurrency:
+      group: deploy-aura
+      cancel-in-progress: false
+
+    steps:
+
+      # ------------------------------------------
+      # 1. Verify server configuration
+      # ------------------------------------------
+
+      - name: Check server prerequisites
+        run: |
+          set -euo pipefail
+
+          echo "Deployment directory: $DEPLOY_DIR"
+          echo "Runner user: $(whoami)"
+
+          node -v
+          npm -v
+          git --version
+          pm2 -v
+          pnpm -v
+
+          if [ ! -d "$DEPLOY_DIR/.git" ]; then
+            echo "::error::Deployment directory is not a Git repository"
+            exit 1
+          fi
+
+          for f in .env.production apps/web/.env.production apps/seller/.env.production; do
+            if [ ! -e "$DEPLOY_DIR/$f" ]; then
+              echo "::error::Missing $DEPLOY_DIR/$f"
+              exit 1
+            fi
+          done
+
+          for app in $PM2_APPS; do
+            pm2 describe "$app" > /dev/null || {
+              echo "::error::PM2 application $app not found"
+              exit 1
+            }
+          done
+
+          echo "Server prerequisites verified."
+
+
+      # ------------------------------------------
+      # 2. Update deployment directory
+      # ------------------------------------------
+
+      - name: Pull latest master code
+        working-directory: ${{ env.DEPLOY_DIR }}
+        run: |
+          set -euo pipefail
+
+          git config --global --add safe.directory "$DEPLOY_DIR"
+
+          echo "Fetching latest master..."
+
+          # Retried: a short network outage between this server and GitHub
+          # once failed a deploy here (git exit code 128).
+          for attempt in 1 2 3 4 5; do
+            if git fetch origin master; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::git fetch failed 5 times"
+              exit 1
+            fi
+            echo "git fetch failed (attempt $attempt of 5); retrying in $((attempt * 10)) s..."
+            sleep $((attempt * 10))
+          done
+
+          # Force deployment clone onto remote master.
+          # This discards local tracked changes. Untracked and
+          # ignored files (.env files, uploads) are kept.
+
+          git checkout -f -B master origin/master
+
+          git reset --hard origin/master
+
+          echo "-----------------------------------"
+          echo "Deployment branch: $(git branch --show-current)"
+          echo "Deployed commit: $(git rev-parse HEAD)"
+          echo "Triggered commit: $GITHUB_SHA"
+          echo "-----------------------------------"
+
+          git status --short
+
+
+      # ------------------------------------------
+      # 3. Install and build
+      # ------------------------------------------
+
+      - name: Install and build
+        working-directory: ${{ env.DEPLOY_DIR }}
+        # Builds apps/web and apps/seller (turbo) with their .env.production.
+        run: |
+          set -euo pipefail
+
+          pnpm install --frozen-lockfile
+
+          pnpm run build
+
+          if [ ! -e apps/web/.next/BUILD_ID ]; then
+            echo "::error::apps/web/.next/BUILD_ID was not generated"
+            exit 1
+          fi
+          echo "Install and build: done."
+
+
+      # ------------------------------------------
+      # 4. Restart PM2 applications
+      # ------------------------------------------
+
+      - name: Restart Aura services
+        run: |
+          set -euo pipefail
+
+          # A plain restart keeps the environment PM2 already has for each
+          # app. --update-env would copy this job's environment (GITHUB_*,
+          # RUNNER_*, ACTIONS_* tokens) into the apps and PM2's saved dump.
+          for app in $PM2_APPS; do
+            echo "Restarting $app..."
+            pm2 restart "$app"
+          done
+
+          pm2 save
+
+          pm2 list
+
+
+      # ------------------------------------------
+      # 5. Verify health
+      # ------------------------------------------
+
+      - name: Health check
+        run: |
+          set -euo pipefail
+
+          # url|mode: "ok" needs a status below 400; "up" accepts anything
+          # below 500 (the app answers, it just has no health route there).
+          for check in "http://127.0.0.1:3028/|ok" "http://127.0.0.1:3027/|ok"; do
+            url=${check%|*}
+            mode=${check#*|}
+            echo "Checking $url ($mode)..."
+
+            for i in $(seq 1 20); do
+              code=$(curl -s -m 20 -o /dev/null -w "%{http_code}" "$url" || true)
+              limit=400
+              [ "$mode" = up ] && limit=500
+              if [ "$code" -ge 200 ] && [ "$code" -lt "$limit" ]; then
+                echo "$url answered $code."
+                break
+              fi
+
+              if [ "$i" -eq 20 ]; then
+                echo "::error::$url did not become healthy (last status $code)"
+                for app in $PM2_APPS; do
+                  pm2 logs "$app" --nostream --lines 50
+                done
+                exit 1
+              fi
+
+              sleep 3
+            done
+          done
+
+
+      # ------------------------------------------
+      # 6. Deployment summary
+      # ------------------------------------------
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "=================================="
+          echo "AURA DEPLOYMENT SUCCESSFUL"
+          echo "=================================="
+          echo "Commit: $(git -C "$DEPLOY_DIR" rev-parse HEAD)"
+          echo "Branch: master"
+          echo "Runner: $(hostname)"
+          echo "User: $(whoami)"
+          echo "=================================="

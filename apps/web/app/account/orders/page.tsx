@@ -20,7 +20,7 @@ interface VariantInfo { size: string; color: string }
 interface EnrichedItem extends OrderItem {
   products?: ProductInfo | null;
   product_variants?: VariantInfo | null;
-  dispatched_at?: string | null;
+  dispatched_at: string | null;
 }
 
 interface AddressInfo { name: string; line1: string; line2: string | null; city: string; state: string; pincode: string; phone: string }

@@ -7,7 +7,12 @@ export async function POST(request: NextRequest) {
     // ✅ SECURITY: Rate limit order creation (5 per user per hour)
     const authHeader = request.headers.get("Authorization") || "";
     const userIdMatch = authHeader.match(/Bearer ([^.]+)/);
-    const userId = userIdMatch ? userIdMatch[1] : request.ip || "anonymous";
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "anonymous";
+
+    const userId = userIdMatch ? userIdMatch[1] : clientIp;
 
     const { success, remaining, resetTime } = rateLimit(
       `order_create:${userId}`,
