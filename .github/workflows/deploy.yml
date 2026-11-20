@@ -38,7 +38,10 @@ jobs:
           - part: apps
             dir: "."
             install: "pnpm install --frozen-lockfile"
-            check: "pnpm run type-check"
+            # The production build, as the server runs it. Both Next.js apps set
+            # typescript.ignoreBuildErrors, so a strict type-check fails on code that
+            # builds and runs fine in production; the CI check mirrors production.
+            check: "pnpm run build"
     defaults:
       run:
         working-directory: ${{ matrix.dir }}
@@ -61,6 +64,13 @@ jobs:
 
       - name: Check
         run: ${{ matrix.check }}
+        env:
+          CI: "true"
+          # Placeholders: pages create a Supabase client while prerendering, which only
+          # needs these to be set. The server builds with its real .env.production.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://aura-web.prakashsoftwares.com
 
 
   # ==========================================
